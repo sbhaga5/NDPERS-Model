@@ -358,16 +358,16 @@ RunModel <- function(AnalysisType, SimReturn, SimVolatility, ER_Policy, ScenType
     #Gain Loss, Defered Losses
     GainLoss_CurrentHires[i] <- MVA_CurrentHires[i] - ExpectedMVA_CurrentHires[i]
     DeferedCurYear_CurrentHires[i] <- GainLoss_CurrentHires[i]*(0.8/1)
-    Year1GL_CurrentHires[i] <- DeferedCurYear_CurrentHires[i]*(0.6/0.8)
-    Year2GL_CurrentHires[i] <- Year1GL_CurrentHires[i]*(0.4/0.6)
-    Year3GL_CurrentHires[i] <- Year2GL_CurrentHires[i]*(0.2/0.4)
+    Year1GL_CurrentHires[i] <- DeferedCurYear_CurrentHires[i-1]*(0.6/0.8)
+    Year2GL_CurrentHires[i] <- Year1GL_CurrentHires[i-1]*(0.4/0.6)
+    Year3GL_CurrentHires[i] <- Year2GL_CurrentHires[i-1]*(0.2/0.4)
     TotalDefered_CurrentHires[i] <- Year1GL_CurrentHires[i] + Year2GL_CurrentHires[i] + Year3GL_CurrentHires[i] + DeferedCurYear_CurrentHires[i]
     # 
     GainLoss_NewHires[i] <- MVA_NewHires[i] - ExpectedMVA_NewHires[i]
     DeferedCurYear_NewHires[i] <- GainLoss_NewHires[i]*(0.8/1)
-    Year1GL_NewHires[i] <- DeferedCurYear_NewHires[i]*(0.6/0.8)
-    Year2GL_NewHires[i] <- Year1GL_NewHires[i]*(0.4/0.6)
-    Year3GL_NewHires[i] <- Year2GL_NewHires[i]*(0.2/0.4)
+    Year1GL_NewHires[i] <- DeferedCurYear_NewHires[i-1]*(0.6/0.8)
+    Year2GL_NewHires[i] <- Year1GL_NewHires[i-1]*(0.4/0.6)
+    Year3GL_NewHires[i] <- Year2GL_NewHires[i-1]*(0.2/0.4)
     TotalDefered_NewHires[i] <- Year1GL_NewHires[i] + Year2GL_NewHires[i] + Year3GL_NewHires[i] + DeferedCurYear_NewHires[i]
     #
     #AVA, MVA, UA, FR
@@ -447,7 +447,10 @@ RunModel <- function(AnalysisType, SimReturn, SimVolatility, ER_Policy, ScenType
                   BenPayments_CurrentHires,BenPayments_NewHires,Refunds,Transfers,AdminExp_CurrentHires,AdminExp_NewHires,EE_NC_CurrentHires,
                   EE_NC_NewHires,EE_Amo_CurrentHires,EE_Amo_NewHires,EEPurchase_CurrentHires,EEPurchase_NewHires,AdditionalER,ER_NC_CurrentHires,
                   ER_NC_NewHires,ER_Amo_CurrentHires,ER_Amo_NewHires,Solv_Contrib_CurrentHires,Solv_Contrib_NewHires,Solv_Contrib_Total,
-                  Total_Contrib_DB,Total_Contrib_DC,Total_Contrib,AllInCost,ER_InflAdj,Total_ER,ER_Percentage)
+                  Total_Contrib_DB,Total_Contrib_DC,Total_Contrib,AllInCost,ER_InflAdj,Total_ER,ER_Percentage,NetCF_CurrentHires,ExpInvInc_CurrentHires,
+                  ExpectedMVA_CurrentHires,GainLoss_CurrentHires,DeferedCurYear_CurrentHires,Year1GL_CurrentHires,Year2GL_CurrentHires,Year3GL_CurrentHires,
+                  TotalDefered_CurrentHires,NetCF_NewHires,ExpInvInc_NewHires,ExpectedMVA_NewHires,GainLoss_NewHires,DeferedCurYear_NewHires,Year1GL_NewHires,
+                  Year2GL_NewHires,Year3GL_NewHires,TotalDefered_NewHires)
   
   return(Output)
 }
