@@ -546,50 +546,50 @@ ScenarioPlot(Scenario_UAL, 'Unfunded Liabilities (MVA)')
 #
 # ##################################################################################################################################################################
 #
-# #Simulations
-# start_time <- Sys.time()
-# #Set seed insures a consistency when simulations are run multiple times
-# set.seed((1234))
-# NumberofSimulations <- 1000
-# #initialize the return simulations based on years and # of simulations
-# Returns_Sims <- matrix(1:length(FYE),nrow = length(FYE), ncol = NumberofSimulations + 1)
-# UAL_Sims <- matrix(1:length(FYE),nrow = length(FYE), ncol = NumberofSimulations + 1)
-# FR_Sims <- matrix(1:length(FYE),nrow = length(FYE), ncol = NumberofSimulations + 1)
-# ER_Sims <- matrix(1:length(FYE),nrow = length(FYE), ncol = NumberofSimulations + 1)
-# 
-# #Run the simulations
-# for (i in 1:NumberofSimulations){
-#   NewData <- as.data.frame(RunModel('Stochastic', SimReturnAssumed, SimVolatility, 'ADC', '', 'Lv%'))
-#   Returns_Sims[,i+1] <- NewData$ROA_MVA
-#   UAL_Sims[,i+1] <- NewData$UAL_MVA_InflAdj
-#   FR_Sims[,i+1] <- NewData$FR_MVA
-#   ER_Sims[,i+1] <- NewData$ER_Percentage
-# }
-# 
-# Simulations_Returns <- cbind(FYE,FYE,FYE)
-# Simulations_UAL <- cbind(FYE,FYE,FYE)
-# Simulations_FR <- cbind(FYE,FYE,FYE)
-# Simulations_ER <- cbind(FYE,FYE,FYE)
-# 
-# #Get the 25th, 50th, 75th percentile
-# for(i in 1:length(FYE)){
-#   Simulations_Returns[i,] <- t(quantile(Returns_Sims[i,2:ncol(Returns_Sims)],c(0.25,0.5,0.75)))
-#   Simulations_UAL[i,] <- t(quantile(UAL_Sims[i,2:ncol(UAL_Sims)],c(0.25,0.5,0.75)))
-#   Simulations_FR[i,] <- t(as.data.frame(quantile(FR_Sims[i,2:ncol(FR_Sims)],c(0.25,0.5,0.75))))
-#   Simulations_ER[i,] <- t(quantile(ER_Sims[i,2:ncol(ER_Sims)],c(0.25,0.5,0.75)))
-# }
-# 
-# #plot the graphs
-# SimulationPlot <- function(Data, FYE){
-#   Data <- (as.data.frame(Data))
-#   Data <- cbind(FYE, Data)
-#   colnames(Data) <- c('FYE','25th Percentile', '50th Percentile', '75th Percentile')
-#   ggplot(Data, aes(x = Data[,1])) +
-#     geom_line(aes(y = Data[,2]), color = "#FF6633", size = 2) +
-#     geom_line(aes(y = Data[,3]), color = "#FFCC33", size = 2) +
-#     geom_line(aes(y = Data[,4]), color = "#0066CC", size = 2)
-# }
-# SimulationPlot(Simulations_FR, FYE)
-# 
-# end_time <- Sys.time()
-# print(end_time - start_time)
+#Simulations
+start_time <- Sys.time()
+#Set seed insures a consistency when simulations are run multiple times
+set.seed((1234))
+NumberofSimulations <- 1000
+#initialize the return simulations based on years and # of simulations
+Returns_Sims <- matrix(1:length(FYE),nrow = length(FYE), ncol = NumberofSimulations + 1)
+UAL_Sims <- matrix(1:length(FYE),nrow = length(FYE), ncol = NumberofSimulations + 1)
+FR_Sims <- matrix(1:length(FYE),nrow = length(FYE), ncol = NumberofSimulations + 1)
+ER_Sims <- matrix(1:length(FYE),nrow = length(FYE), ncol = NumberofSimulations + 1)
+
+#Run the simulations
+for (i in 1:NumberofSimulations){
+  NewData <- as.data.frame(RunModel('Stochastic', SimReturnAssumed, SimVolatility, 'ADC', '', 'Lv%'))
+  Returns_Sims[,i+1] <- NewData$ROA_MVA
+  UAL_Sims[,i+1] <- NewData$UAL_MVA_InflAdj
+  FR_Sims[,i+1] <- NewData$FR_MVA
+  ER_Sims[,i+1] <- NewData$ER_Percentage
+}
+
+Simulations_Returns <- cbind(FYE,FYE,FYE)
+Simulations_UAL <- cbind(FYE,FYE,FYE)
+Simulations_FR <- cbind(FYE,FYE,FYE)
+Simulations_ER <- cbind(FYE,FYE,FYE)
+
+#Get the 25th, 50th, 75th percentile
+for(i in 1:length(FYE)){
+  Simulations_Returns[i,] <- t(quantile(Returns_Sims[i,2:ncol(Returns_Sims)],c(0.25,0.5,0.75)))
+  Simulations_UAL[i,] <- t(quantile(UAL_Sims[i,2:ncol(UAL_Sims)],c(0.25,0.5,0.75)))
+  Simulations_FR[i,] <- t(as.data.frame(quantile(FR_Sims[i,2:ncol(FR_Sims)],c(0.25,0.5,0.75))))
+  Simulations_ER[i,] <- t(quantile(ER_Sims[i,2:ncol(ER_Sims)],c(0.25,0.5,0.75)))
+}
+
+#plot the graphs
+SimulationPlot <- function(Data, FYE){
+  Data <- (as.data.frame(Data))
+  Data <- cbind(FYE, Data)
+  colnames(Data) <- c('FYE','25th Percentile', '50th Percentile', '75th Percentile')
+  ggplot(Data, aes(x = Data[,1])) +
+    geom_line(aes(y = Data[,2]), color = "#FF6633", size = 2) +
+    geom_line(aes(y = Data[,3]), color = "#FFCC33", size = 2) +
+    geom_line(aes(y = Data[,4]), color = "#0066CC", size = 2)
+}
+SimulationPlot(Simulations_FR, FYE)
+
+end_time <- Sys.time()
+print(end_time - start_time)
