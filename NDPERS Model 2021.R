@@ -199,9 +199,9 @@ RunModel <- function(DR_CurrentHires = dis_r_proj_currentHires,           #Disco
     NewDR_NewHires[i] <- DR_NewHires
     #
     #Benefit Payments, Admin Expenses, Refunds, Transfer
-    NewHireBenPct[i] <- 0.25/100*(FYE[i] - StartProjectionYear - 1)
+    NewHireBenPct[i] <- 0.25/100*(FYE[i] - StartProjectionYear + 1)
     BenPayments_NewHires_prelim[i] <- -1*NewHireBenPct[i]*(NewHireDBPayroll[i] + NewHireDCPayroll[i])
-    BenPayments_Total_prelim[i] <- BenPayments_Total_prelim[i-1]*(1 + max(0.0806 - 0.00266*(FYE[i] - StartProjectionYear - 1), BenGrowthMax))
+    BenPayments_Total_prelim[i] <- BenPayments_Total_prelim[i-1]*(1 + max(0.0806 - 0.00266*(FYE[i] - StartProjectionYear + 1), BenGrowthMax))
     BenPayments_CurrentHires[i] <- BenPayments_Total_prelim[i] - BenPayments_NewHires_prelim[i]
     BenPayments_NewHires[i] <- -1*NewHireBenPct[i]*NewHireDBPayroll[i]*BenMult/BenMult_current
     BenPayments_Total[i] <- BenPayments_CurrentHires[i] + BenPayments_NewHires[i] 
@@ -294,13 +294,18 @@ RunModel <- function(DR_CurrentHires = dis_r_proj_currentHires,           #Disco
     EE_Amo_CurrentHires[i] <- EEAmoRate_CurrentHires[i]*CurrentPayroll[i]
     EE_Amo_NewHires[i] <- EEAmoRate_NewHires[i]*NewHireDBPayroll[i]
     
+    
+    ERStatu_CurrentHires[i] <- if (FR_AVA[i-1] < 1) {ERContrib_CurrentHires} else {ERContrib_FullFund}
+    ERStatu_NewHires[i] <- if(FR_AVA[i-1] < 1) {ERContrib_NewHires} else {ERContrib_FullFund}
+    
+    
     # if((FYE[i] < 2026) && (ContrFreeze == 'FREEZE')){
     #   ER_Amo_CurrentHires[i] <- ER_Amo_CurrentHires[i-1]
     #   ER_Amo_NewHires[i] <- ER_Amo_NewHires[i-1]
     # } else {
       if(FundingPolicy == 'Statutory Rate'){
-        ER_Amo_CurrentHires[i] <- (ERContrib_CurrentHires - EmployerNC_CurrentHires[i] - Admin_Exp_Pct)*CurrentPayroll[i]
-        ER_Amo_NewHires[i] <- (ERContrib_NewHires - EmployerNC_NewHires[i] - Admin_Exp_Pct)*NewHireDBPayroll[i]
+        ER_Amo_CurrentHires[i] <- (ERStatu_CurrentHires[i] - EmployerNC_CurrentHires[i] - Admin_Exp_Pct)*CurrentPayroll[i]
+        ER_Amo_NewHires[i] <- (ERStatu_NewHires[i] - EmployerNC_NewHires[i] - Admin_Exp_Pct)*NewHireDBPayroll[i]
       } else {
         ER_Amo_CurrentHires[i] <- max(AmoRate_CurrentHires[i]*TotalPayroll[i] - EE_Amo_CurrentHires[i], -ER_NC_CurrentHires[i])
         ER_Amo_NewHires[i] <- max(AmoRate_NewHires[i]*(NewHireDBPayroll[i] + NewHireDCPayroll[i]) - EE_Amo_NewHires[i], -ER_NC_NewHires[i])
@@ -334,12 +339,12 @@ RunModel <- function(DR_CurrentHires = dis_r_proj_currentHires,           #Disco
     
     #Net CF, Expected MVA      
     NetCF_CurrentHires[i] <- CashFlows_CurrentHires + Solv_Contrib_CurrentHires[i]
-    ExpInvInc_CurrentHires[i] <- MVA_CurrentHires[i-1]*NewDR_CurrentHires[i-1] + NetCF_CurrentHires[i]*((NewDR_CurrentHires[i-1] + 1)*0.5 - 1)
+    ExpInvInc_CurrentHires[i] <- MVA_CurrentHires[i-1]*NewDR_CurrentHires[i-1] + NetCF_CurrentHires[i]*((NewDR_CurrentHires[i-1] + 1)^0.5 - 1)
     ExpectedMVA_CurrentHires[i] <- MVA_CurrentHires[i-1] + NetCF_CurrentHires[i] + ExpInvInc_CurrentHires[i]
     MVA_CurrentHires[i] <- MVA_CurrentHires[i-1]*(1+ROA_MVA[i]) + NetCF_CurrentHires[i]*(1+ROA_MVA[i])^PayTimeEOY
     
     NetCF_NewHires[i] <- CashFlows_NewHires + Solv_Contrib_NewHires[i]
-    ExpInvInc_NewHires[i] <- MVA_NewHires[i-1]*NewDR_NewHires[i-1] + NetCF_NewHires[i]*((NewDR_NewHires[i-1] + 1)*0.5 - 1)
+    ExpInvInc_NewHires[i] <- MVA_NewHires[i-1]*NewDR_NewHires[i-1] + NetCF_NewHires[i]*((NewDR_NewHires[i-1] + 1)^0.5 - 1)
     ExpectedMVA_NewHires[i] <- MVA_NewHires[i-1] + NetCF_NewHires[i] + ExpInvInc_NewHires[i]
     MVA_NewHires[i] <- MVA_NewHires[i-1]*(1+ROA_MVA[i]) + NetCF_NewHires[i]*(1+ROA_MVA[i])^PayTimeEOY
     #
@@ -449,8 +454,9 @@ RunModel <- function(DR_CurrentHires = dis_r_proj_currentHires,           #Disco
                   UAL_AVA,UAL_AVA_InflAdj,UAL_AVA_CurrentHires,UAL_AVA_NewHires,UAL_MVA,UAL_MVA_InflAdj,UAL_MVA_CurrentHires,UAL_MVA_NewHires,
                   FR_AVA,FR_MVA,Impl_FundPeriod,TargetYear100Pct,NC_CurrentHires,NC_NewHires,EmployeeNC_CurrentHires,EmployeeNC_NewHires,
                   EmployerNC_CurrentHires,EmployerNC_NewHires,AmoRate_CurrentHires,AmoRate_NewHires,EEAmoRate_CurrentHires,EEAmoRate_NewHires,
-                  BenPayments_CurrentHires,BenPayments_NewHires,Refunds,Transfers,AdminExp_CurrentHires,AdminExp_NewHires,EE_NC_CurrentHires,
-                  EE_NC_NewHires,EE_Amo_CurrentHires,EE_Amo_NewHires,EEPurchase_CurrentHires,EEPurchase_NewHires,AdditionalER,ER_NC_CurrentHires,
+                  ERStatu_CurrentHires, ERStatu_NewHires, NewHireBenPct, BenPayments_Total,BenPayments_CurrentHires,BenPayments_NewHires,BenPayments_Total_prelim,BenPayments_NewHires_prelim,
+                  Refunds,Transfers,AdminExp_CurrentHires,AdminExp_NewHires,EE_NC_CurrentHires,EE_NC_NewHires,
+                  EE_Amo_CurrentHires,EE_Amo_NewHires,EEPurchase_CurrentHires,EEPurchase_NewHires,AdditionalER,ER_NC_CurrentHires,
                   ER_NC_NewHires,ER_Amo_CurrentHires,ER_Amo_NewHires,Solv_Contrib_CurrentHires,Solv_Contrib_NewHires,Solv_Contrib_Total,
                   Total_Contrib_DB, Total_ERContrib_DB, ERContrib_DC, Total_ERContrib, AllInCost, ER_InflAdj,Total_ER,ER_Percentage,NetCF_CurrentHires,ExpInvInc_CurrentHires,
                   ExpectedMVA_CurrentHires,GainLoss_CurrentHires,CurYearGL_CurrentHires,Year1GL_CurrentHires,Year2GL_CurrentHires,Year3GL_CurrentHires,
@@ -463,8 +469,12 @@ RunModel <- function(DR_CurrentHires = dis_r_proj_currentHires,           #Disco
 ##################################################################################################################################################################
 
 #Test
-Test <- RunModel()
-Test <- as.data.frame(Test)
+# Test <- as.data.frame(RunModel())
+# Test5 <- as.data.frame(RunModel(ReturnType = "Stochastic"))
+# write.csv(Test5, "Test5.csv")
+# 
+# ADC_scenario <- as.data.frame(RunModel(FundingPolicy = "ADC"))
+# write.csv(ADC_scenario, "ADC_scenario.csv")
 
 
 #Scenarios
