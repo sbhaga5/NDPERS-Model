@@ -7,7 +7,7 @@ rm(list = ls())
 #User can change these values
 StartYear <- 2016
 StartProjectionYear <- 2022
-EndProjectionYear <- 2051
+EndProjectionYear <- 2052
 FileName <- 'NDPERS Funding Model Inputs.xlsx'
 #
 #Reading Input File
@@ -96,11 +96,11 @@ RowColCount <- (EndProjectionYear - StartProjectionYear + 1)
 source("NDPERS Benefit Model Function.R")
 
 #Calculate the NC calibration factor based on the current NC estimate using the benefit model. The benefit multiplier dropped to 1.75% for those hired after 2020. Since this is a very recent change, we assume that most of the current NC is determined by the previous multiplier of 2%. 
-NC_CurrentHires_est <- benefit_cal(DB_mult = 0.02)
+NC_CurrentHires_est <- benefit_cal(DB_mult = 0.02, DB_ARR = dis_r_currentHires)
 NC_cal_factor = NC_CurrentHires_Pct/NC_CurrentHires_est
 
 #Baseline NC for new hires (for benefit payment projection later)
-NC_NewHires_Pct_base <- benefit_cal(DB_mult = BenMult_new) * NC_cal_factor
+NC_NewHires_Pct_base <- benefit_cal(DB_mult = BenMult_new, DB_ARR = dis_r_newHires) * NC_cal_factor
 
 
 ##################################################################################################################################################################
@@ -114,6 +114,7 @@ RunModel <- function(NewHire_Plan = NewHirePlan,                          #Plan 
                      DR_NewHires = dis_r_proj_newHires,                   #Discount rate for new hires. Min = 4%. Max = 9%. 0.25% step
                      ReturnType = AnalysisType,                           #"Deterministic" or "Stochastic" type of simulated returns.
                      DeSimType = ScenType,                                #Deterministic return scenarios. 
+                     ModelReturn = model_return,                          #Manually set constant return under the deterministic "Model" scenario
                      StoSimType = SimType,                                #"Assumed" or "Conservative" (for stochastic analysis)
                      FundingPolicy = ER_Policy,                           #"Statutory" or "ADC" funding policy.
                      CostShare_AmoNew = CostSharing_Amo_NewHire,          #"No" or "Yes". "No" means no Amo cost sharing between the employer and new hires.
@@ -123,13 +124,15 @@ RunModel <- function(NewHire_Plan = NewHirePlan,                          #Plan 
                      NewDebtNewHire_period = NoYearsADC_NewDebtNewHire,               #Amortization period (in years) for new unfunded liability created under new hire plan  
                      AmoMethod_current = AmoMethod_CurrentHire,                       #"Level %" or "Level dollar" amortization method for unfunded liability created under current hire plan
                      AmoMethod_new = AmoMethod_NewHire,                               #"Level %" or "Level dollar" amortization method for unfunded liability created under new hire plan
-                     OneTimeInfusion = CashInfusion                                   #One time cash infusion in 2022.
+                     OneTimeInfusion = CashInfusion,                                  #One time cash infusion in 2023.
+                     AnnualCashInfusion = CashInfusion_Annual,                        #Annual cash infusion.
+                     EEAdditionalRate = EE_Additional_Rate,                           #Extra statutory contribution rate from the employee 
+                     ERAdditionalRate = ER_Additional_Rate                            #Extra statutory contribution rate from the employer
                      ){
-  #Scenario Index for referencing later based on investment return data
-  ScenarioIndex <- which(colnames(Scenario_Data) == as.character(DeSimType))
+  
   
   #Calculate NC for new hires in DB & Hybrid plan based on the multiplier input
-  NC_NewHires_Pct <- benefit_cal(DB_mult = BenMultNew) * NC_cal_factor
+  NC_NewHires_Pct <- benefit_cal(DB_mult = BenMultNew, DB_ARR = dis_r_newHires) * NC_cal_factor
   
   ##Amo period tables
   currentlayer <- seq(CurrentDebt_period, 1)
@@ -189,7 +192,12 @@ RunModel <- function(NewHire_Plan = NewHirePlan,                          #Plan 
   OutstandingBase_NewHires <- matrix(0,RowColCount + 1, length(futurelayer_futurehire) + 1)
   Amortization_NewHires <- matrix(0,RowColCount + 1, length(futurelayer_futurehire))
   
+  #Set return values for "Model" and "Assumption" deterministic scenarios  (NOTE: 2022 is estimated to be -7%. Fix this code when the new val report is released)
+  Scenario_Data$Model[2:nrow(Scenario_Data)] <- ModelReturn
+  Scenario_Data$Assumption[2:nrow(Scenario_Data)] <- DR_CurrentHires   #Change return values in "Assumption" scenario to match the discount rate input for current hires
   
+  #Scenario Index for referencing later based on investment return data
+  ScenarioIndex <- which(colnames(Scenario_Data) == as.character(DeSimType))
   
   #intialize this value at 0 for Total ER Contributions
   Total_ER[StartIndex-1] <- 0
@@ -266,13 +274,13 @@ RunModel <- function(NewHire_Plan = NewHirePlan,                          #Plan 
     if(CostSharing_NC_CurrentHire == 'Yes'){
       EmployeeNC_CurrentHires[i] <- NC_CurrentHires[i]/2    
     } else {
-      EmployeeNC_CurrentHires[i] <- EEContribDB_CurrentHires
+      EmployeeNC_CurrentHires[i] <- EEContribDB_CurrentHires + EEAdditionalRate
     }
     
     if(CostShare_NCNew == 'Yes'){
       EmployeeNC_NewHires[i] <- NC_NewHires[i]/2      
     } else {
-      EmployeeNC_NewHires[i] <- EEContribDB_NewHires
+      EmployeeNC_NewHires[i] <- EEContribDB_NewHires + EEAdditionalRate
     }
     
     EmployerNC_CurrentHires[i] <- NC_CurrentHires[i] - EmployeeNC_CurrentHires[i]
@@ -287,20 +295,23 @@ RunModel <- function(NewHire_Plan = NewHirePlan,                          #Plan 
     #   ER_NC_CurrentHires[i] <- ER_NC_CurrentHires[i-1]
     #   ER_NC_NewHires[i] <- ER_NC_NewHires[i-1]
     # } else {
-      ER_NC_CurrentHires[i] <- EmployerNC_CurrentHires[i]*CurrentPayroll[i] - AdminExp_CurrentHires[i]
-      ER_NC_NewHires[i] <- EmployerNC_NewHires[i]*NewHireDBPayroll[i] - AdminExp_NewHires[i]
+    ER_NC_CurrentHires[i] <- EmployerNC_CurrentHires[i]*CurrentPayroll[i] - AdminExp_CurrentHires[i]
+    ER_NC_NewHires[i] <- EmployerNC_NewHires[i]*NewHireDBPayroll[i] - AdminExp_NewHires[i]
     # }
     
-    if(FYE[i] == 2022){
+    if(FYE[i] == 2023){
       ERCashInfusion <- OneTimeInfusion
     } else {
       ERCashInfusion <- 0
     }
-    # if(FR_AVA[i] < TransferFRTreshold){
-    #   ERSupplemental <- TransferPERS*0
-    # } else {
+      
+    if(FYE[i] <= 2023){
       ERSupplemental <- 0
-    # }
+    } else {
+      ERSupplemental <- AnnualCashInfusion
+    }
+      
+
     AdditionalER[i] <- ERCashInfusion + ERSupplemental
     
     
@@ -323,8 +334,8 @@ RunModel <- function(NewHire_Plan = NewHirePlan,                          #Plan 
     EE_Amo_NewHires[i] <- EEAmoRate_NewHires[i]*NewHireDBPayroll[i]
     
     
-    ERStatu_CurrentHires[i] <- if (FR_AVA[i-1] < 1) {ERContrib_CurrentHires} else {ERContrib_FullFund}
-    ERStatu_NewHires[i] <- if(FR_AVA[i-1] < 1) {ERContrib_NewHires} else {ERContrib_FullFund}
+    ERStatu_CurrentHires[i] <- if (FR_AVA[i-1] < 1) {ERContrib_CurrentHires + ERAdditionalRate} else {ERContrib_FullFund + ERAdditionalRate}
+    ERStatu_NewHires[i] <- if(FR_AVA[i-1] < 1) {ERContrib_NewHires + ERAdditionalRate} else {ERContrib_FullFund + ERAdditionalRate}
     
     
     # if((FYE[i] < 2026) && (ContrFreeze == 'FREEZE')){
