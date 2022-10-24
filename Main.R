@@ -56,7 +56,7 @@ for(i in 1:length(FYE)){
   Simulations_ER[i,] <- t(quantile(ER_Sims[i,2:ncol(ER_Sims)],c(0.25,0.5,0.75)))
 }
 
-SimulationPlot(Simulations_FR, FYE)
+SimulationPlot(Simulations_FR, FYE, 'Funded Ratio (MVA)')
 
 end_time <- Sys.time()
 print(end_time - start_time)
