@@ -1,8 +1,12 @@
-library("readxl")
+library('readxl')
 library(ggplot2)
 library(tidyverse)
+library()
 setwd(getwd())
 rm(list = ls())
+source('Functions.R')
+#Source the benefit function to calculate the normal cost
+source("NDPERS Benefit Model Function.R")
 #
 #User can change these values
 StartYear <- 2016
@@ -15,49 +19,6 @@ user_inputs_numeric <- read_excel(FileName, sheet = 'Numeric Inputs')
 user_inputs_character <- read_excel(FileName, sheet = 'Character Inputs')
 Historical_Data <- read_excel(FileName, sheet = 'Historical Data')
 Scenario_Data <- read_excel(FileName, sheet = 'Inv_Returns')
-#
-##################################################################################################################################################################
-#
-#Functions for later use
-#Function for Present Value for Amortization
-PresentValue = function(rate, nper, pmt) {
-  PV = pmt * (1 - (1 + rate) ^ (-nper)) / rate * (1 + rate)
-  return(PV)
-}
-
-NPV = function(rate, cashflows) {
-  for(i in 1:length(cashflows)){
-    if(i == 1){
-      NPV <- cashflows[i]/((1+rate)^(i))
-    } else {
-      NPV <- NPV + cashflows[i]/((1+rate)^(i))
-    }
-  }
-  
-  return(NPV)
-}
-
-#Function for calculating amo payments
-#pmt0 = basic amo payment calculation, assuming payment beginning of period 
-PMT0 <- function(r, nper, pv) {
-  if (r == 0) {
-    a <- pv/nper
-  } else {
-    a <- pv*r*(1+r)^(nper-1)/((1+r)^nper-1)  
-  }
-  
-  # if(nper == 0){
-  #   a <- 0
-  # }
-  
-  return(a)
-}
-
-#pmt = amo payment function with growth rate and timing added; t = 1 for end of period payment, 0.5 for half period. 
-PMT <- function(r, g = 0, nper, pv, t = 1) {
-  a <- PMT0((1+r)/(1+g) - 1, nper, pv*(1+r)^t)
-  return(a)
-}
 #
 ##################################################################################################################################################################
 #
@@ -91,9 +52,6 @@ HistoricalIndex <- StartProjectionYear - StartYear
 
 #Initialize Amortization and Outstnading Base
 RowColCount <- (EndProjectionYear - StartProjectionYear + 1)
-
-#Source the benefit function to calculate the normal cost
-source("NDPERS Benefit Model Function.R")
 
 #Calculate the NC calibration factor based on the current NC estimate using the benefit model. The benefit multiplier dropped to 1.75% for those hired after 2020. Since this is a very recent change, we assume that most of the current NC is determined by the previous multiplier of 2%. 
 NC_CurrentHires_est <- benefit_cal(DB_mult = 0.02)
@@ -493,159 +451,3 @@ RunModel <- function(NewHire_Plan = NewHirePlan,                          #Plan 
 }
 
 ##################################################################################################################################################################
-
-
-
-#Test
-# Test_baseline <- RunModel()
-# Test_baseline_DB <- RunModel(NewHire_Plan = "DB", NewHireDC_choice = 0.5)
-# Test_baseline_DCchoice <- RunModel(NewHire_Plan = "DB-DC Choice", NewHireDC_choice = 0.75, DC_ContRate = 0.028)
-# Test_baseline_hybridlower <- RunModel(NewHire_Plan = "Hybrid", BenMultNew = 0.01, DC_ContRate = 0.033)
-
-
-# Test5 <- as.data.frame(RunModel(ReturnType = "Stochastic"))
-# write.csv(Test5, "Test5.csv")
-# 
-# ADC_scenario <- as.data.frame(RunModel(FundingPolicy = "ADC"))
-# write.csv(ADC_scenario, "ADC_scenario.csv")
-
-
-#Scenarios
-# Scenario_Returns <- as.data.frame(FYE)
-# Scenario_UAL <- as.data.frame(FYE)
-# Scenario_FR <- as.data.frame(FYE)
-# Scenario_ER_Percentage <- as.data.frame(FYE)
-# Scenario_ER_InflAdj <- as.data.frame(FYE)
-# Scenario_Total_ER <- as.data.frame(FYE)
-# Scenario_AllIn_ER <- as.data.frame(FYE)
-# 
-# #There are 3 types of scenarios here - Recessions, Supplemental and Lv$%
-# #We are trying to run all of them outside of a function because we need the data for UAL, FR, etc.
-# #If we run them in a function, we can only generate one output
-# ScenarioRuns <- 'Return Scenarios'
-# #Initialize Max Length, this will be used at the end
-# MaxLength <- 0
-# if(ScenarioRuns == 'Return Scenarios'){
-#   Scenarios <- c('Assumption','Model','Recession','Recurring Recession')
-#   for (i in 1:length(Scenarios)){
-#     NewData <- as.data.frame(RunModel('Deterministic',SimReturn, SimVolatility, 'Statutory', Scenarios[i], 'Lv%'))
-#     Scenario_Returns <- cbind(Scenario_Returns,NewData$ROA_MVA)
-#     Scenario_UAL <- cbind(Scenario_UAL,NewData$UAL_MVA_InflAdj)
-#     Scenario_FR <- cbind(Scenario_FR,NewData$FR_MVA)
-#     Scenario_ER_Percentage <- cbind(Scenario_ER_Percentage,NewData$ER_Percentage)
-#     Scenario_ER_InflAdj <- cbind(Scenario_ER_InflAdj,NewData$ER_InflAdj)
-#     Scenario_Total_ER <- cbind(Scenario_Total_ER,NewData$Total_ER)
-#     Scenario_AllIn_ER <- cbind(Scenario_AllIn_ER,NewData$AllInCost)
-#   }
-#   #Scenario names should be the same as Scenarios but for some cases like supplemental, lv$, etc. it will be different
-#   ScenarioNames <- Scenarios
-#   
-# } else if(ScenarioRuns == 'Lv$ vs %'){
-#   Scenarios <- c('Assumption','Lv%','Assumption','Lv$','Recurring Recession','Lv%','Recurring Recession','Lv$')
-#   MaxLength <- length(Scenarios)/2
-#   for (i in 1:MaxLength){
-#     NewData <- as.data.frame(RunModel('Deterministic',SimReturn, SimVolatility, 'ADC', Scenarios[i*2 - 1], Scenarios[i*2]))
-#     Scenario_Returns <- cbind(Scenario_Returns,NewData$ROA_MVA)
-#     Scenario_UAL <- cbind(Scenario_UAL,NewData$UAL_MVA_InflAdj)
-#     Scenario_FR <- cbind(Scenario_FR,NewData$FR_MVA)
-#     Scenario_ER_Percentage <- cbind(Scenario_ER_Percentage,NewData$ER_Percentage)
-#     Scenario_ER_InflAdj <- cbind(Scenario_ER_InflAdj,NewData$ER_InflAdj)
-#     Scenario_Total_ER <- cbind(Scenario_Total_ER,NewData$Total_ER)
-#     Scenario_AllIn_ER <- cbind(Scenario_AllIn_ER,NewData$AllInCost)
-#   }
-#   #Scenario names should be the same as Scenarios but for some cases like supplemental, lv$, etc. it will be different
-#   ScenarioNames <- c('Assumption Lv%', 'Assumption Lv$', 'Recurring Recession Lv%', 'Recurring Recession Lv$')
-# }
-# 
-# #MaxLength should in theory be the lenght of the scenarios but because of Lv$%, it may not be
-# #Hence we have to do the max function
-# if(ScenarioRuns != 'Lv$ vs %'){
-#   MaxLength <- length(Scenarios)
-# }
-# 
-# for(i in 1:MaxLength){
-#   #Start from StartIndex because thats when the projection is
-#   #Total ER is already inflation adjusted
-#   TotalERScenario <- sum(Scenario_Total_ER[nrow(Scenario_Total_ER),i+1])/1000
-#   #inflation adjusted UAL
-#   EndingUAL <- Scenario_UAL[nrow(Scenario_UAL),i+1]/1000
-#   AllInER <- Scenario_AllIn_ER[nrow(Scenario_AllIn_ER),i+1]/1000
-#   
-#   if(i == 1){
-#     ERCostTable <- c(TotalERScenario,EndingUAL, AllInER)
-#   } else {
-#     ERCostTable <- rbind(ERCostTable, c(TotalERScenario,EndingUAL, AllInER))
-#   }
-# }
-# colnames(ERCostTable) <- c('Total ER Contributions','Ending UAL','All in ER Cost')
-# rownames(ERCostTable) <- ScenarioNames
-# 
-# colnames(Scenario_Returns) <- c('FYE',ScenarioNames)
-# colnames(Scenario_UAL) <- c('FYE',ScenarioNames)
-# colnames(Scenario_FR) <- c('FYE',ScenarioNames)
-# colnames(Scenario_ER_Percentage) <- c('FYE',ScenarioNames)
-# colnames(Scenario_ER_InflAdj) <- c('FYE',ScenarioNames)
-# 
-# #library(ggplot2)
-
-Data <- as.data.frame(cbind(FYE, RunModel(AnnualCashInfusion_Check = 'Yes', AnnualCashInfusion = 100)$FR_MVA, RunModel(AnnualCashInfusion_Check = 'No', OneTimeInfusion = 100)$FR_MVA))
-ScenarioPlot <- function(Data, YAxisLabel){
-  ggplot(Data, aes(x = FYE)) +
-    geom_line(aes(y = Data[,2]), color = "#FF6633", size = 2) +
-    geom_line(aes(y = Data[,3]), color = "#FFCC33", size = 2) +
-    # geom_line(aes(y = Data[,4]), color = "#0066CC", size = 2) +
-    # geom_line(aes(y = Data[,5]), color = "#CC0000", size = 2) +
-    labs(y = YAxisLabel, x = 'Year') + ggtitle(YAxisLabel)
-  #scale_linetype_manual(labels = '')
-}
-ScenarioPlot(Data, 'Funded Ratio (MVA)')
-# #
-# # ##################################################################################################################################################################
-# #
-# #Simulations
-# start_time <- Sys.time()
-# #Set seed insures a consistency when simulations are run multiple times
-# set.seed((1234))
-# NumberofSimulations <- 1000
-# #initialize the return simulations based on years and # of simulations
-# Returns_Sims <- matrix(1:length(FYE),nrow = length(FYE), ncol = NumberofSimulations + 1)
-# UAL_Sims <- matrix(1:length(FYE),nrow = length(FYE), ncol = NumberofSimulations + 1)
-# FR_Sims <- matrix(1:length(FYE),nrow = length(FYE), ncol = NumberofSimulations + 1)
-# ER_Sims <- matrix(1:length(FYE),nrow = length(FYE), ncol = NumberofSimulations + 1)
-# 
-# #Run the simulations
-# for (i in 1:NumberofSimulations){
-#   NewData <- as.data.frame(RunModel('Stochastic', SimReturnAssumed, SimVolatility, 'ADC', '', 'Lv%'))
-#   Returns_Sims[,i+1] <- NewData$ROA_MVA
-#   UAL_Sims[,i+1] <- NewData$UAL_MVA_InflAdj
-#   FR_Sims[,i+1] <- NewData$FR_MVA
-#   ER_Sims[,i+1] <- NewData$ER_Percentage
-# }
-# 
-# Simulations_Returns <- cbind(FYE,FYE,FYE)
-# Simulations_UAL <- cbind(FYE,FYE,FYE)
-# Simulations_FR <- cbind(FYE,FYE,FYE)
-# Simulations_ER <- cbind(FYE,FYE,FYE)
-# 
-# #Get the 25th, 50th, 75th percentile
-# for(i in 1:length(FYE)){
-#   Simulations_Returns[i,] <- t(quantile(Returns_Sims[i,2:ncol(Returns_Sims)],c(0.25,0.5,0.75)))
-#   Simulations_UAL[i,] <- t(quantile(UAL_Sims[i,2:ncol(UAL_Sims)],c(0.25,0.5,0.75)))
-#   Simulations_FR[i,] <- t(as.data.frame(quantile(FR_Sims[i,2:ncol(FR_Sims)],c(0.25,0.5,0.75))))
-#   Simulations_ER[i,] <- t(quantile(ER_Sims[i,2:ncol(ER_Sims)],c(0.25,0.5,0.75)))
-# }
-# 
-# #plot the graphs
-# SimulationPlot <- function(Data, FYE){
-#   Data <- (as.data.frame(Data))
-#   Data <- cbind(FYE, Data)
-#   colnames(Data) <- c('FYE','25th Percentile', '50th Percentile', '75th Percentile')
-#   ggplot(Data, aes(x = Data[,1])) +
-#     geom_line(aes(y = Data[,2]), color = "#FF6633", size = 2) +
-#     geom_line(aes(y = Data[,3]), color = "#FFCC33", size = 2) +
-#     geom_line(aes(y = Data[,4]), color = "#0066CC", size = 2)
-# }
-# SimulationPlot(Simulations_FR, FYE)
-# 
-# end_time <- Sys.time()
-# print(end_time - start_time)
